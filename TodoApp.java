@@ -5,17 +5,19 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// Класс задачи
+
 class Task implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private int id;
+    private String title;
     private String description;
     private boolean completed;
     private java.time.LocalDateTime createdAt;
 
-    public Task(int id, String description) {
+    public Task(int id, String title, String description) {
         this.id = id;
+        this.title = title;
         this.description = description;
         this.completed = false;
         this.createdAt = java.time.LocalDateTime.now();
@@ -23,6 +25,8 @@ class Task implements Serializable {
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public boolean isCompleted() { return completed; }
@@ -31,13 +35,17 @@ class Task implements Serializable {
 
     @Override
     public String toString() {
-        String status = completed ? "✅" : "⭕";
+        String status = completed ? "✓" : "○";
         String time = createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm"));
-        return String.format("%d. %s %s (%s)", id, status, description, time);
+        if (description == null || description.isEmpty()) {
+            return String.format("%d. %s %s (%s)", id, status, title, time);
+        } else {
+            return String.format("%d. %s %s - %s (%s)", id, status, title, description, time);
+        }
     }
 }
 
-// Кастомный рендерер для списка
+
 class TaskListRenderer extends DefaultListCellRenderer {
     private final Color PINK_BACKGROUND = new Color(255, 240, 245);
     private final Color PINK_SELECTION = new Color(255, 182, 193);
@@ -74,12 +82,13 @@ class TaskListRenderer extends DefaultListCellRenderer {
     }
 }
 
-// Главное приложение
+
 public class TodoApp extends JFrame {
     private DefaultListModel<Task> listModel;
     private JList<Task> taskList;
-    private JTextField taskField;
-    private JButton addButton, deleteButton, completeButton;
+    private JTextField titleField;
+    private JTextArea descriptionArea;
+    private JButton addButton, deleteButton, completeButton, editButton;
     private List<Task> tasks;
     private static final String SAVE_FILE = "tasks.dat";
     
@@ -99,7 +108,7 @@ public class TodoApp extends JFrame {
     private void initializeUI() {
         setTitle("🌸 Pink Todo App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(450, 500);
+        setSize(500, 600);
         setLocationRelativeTo(null);
         getContentPane().setBackground(PINK_BACKGROUND);
 
@@ -110,54 +119,88 @@ public class TodoApp extends JFrame {
         taskList.setBackground(Color.WHITE);
         taskList.setSelectionBackground(PINK_BUTTON);
         taskList.setSelectionForeground(Color.WHITE);
-        taskList.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        taskList.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         taskList.setCellRenderer(new TaskListRenderer());
 
-        taskField = new JTextField(20);
-        styleTextField(taskField);
+        // Поля для ввода
+        titleField = new JTextField(20);
+        styleTextField(titleField);
+        
+        descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        descriptionArea.setBackground(Color.WHITE);
+        descriptionArea.setForeground(DARK_PINK_TEXT);
+        descriptionArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PINK_BORDER, 1),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
 
         addButton = createPinkButton("➕ Добавить");
         deleteButton = createPinkButton("🗑️ Удалить");
-        completeButton = createPinkButton("✅ Выполнено");
+        completeButton = createPinkButton("✓ Выполнено");
+        editButton = createPinkButton("✏️ Редактировать");
 
-        JPanel inputPanel = new JPanel(new FlowLayout());
+        // Панель для ввода
+        JPanel inputPanel = new JPanel(new BorderLayout(10, 10));
         inputPanel.setBackground(PINK_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JLabel label = new JLabel("Новая задача:");
-        label.setForeground(DARK_PINK_TEXT);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
-        inputPanel.add(label);
-        inputPanel.add(taskField);
-        inputPanel.add(addButton);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        buttonPanel.setBackground(PINK_BACKGROUND);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(completeButton);
-
-        JLabel titleLabel = new JLabel("🌸 Мои Задачи 🌸", JLabel.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        titlePanel.setBackground(PINK_BACKGROUND);
+        JLabel titleLabel = new JLabel("Заголовок:");
         titleLabel.setForeground(DARK_PINK_TEXT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
-        titleLabel.setBackground(new Color(255, 228, 225));
-        titleLabel.setOpaque(true);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titlePanel.add(titleLabel);
+        titlePanel.add(titleField);
+        
+        JPanel descPanel = new JPanel(new BorderLayout(5, 5));
+        descPanel.setBackground(PINK_BACKGROUND);
+        JLabel descLabel = new JLabel("Описание:");
+        descLabel.setForeground(DARK_PINK_TEXT);
+        descLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        descPanel.add(descLabel, BorderLayout.NORTH);
+        descPanel.add(new JScrollPane(descriptionArea), BorderLayout.CENTER);
+        
+        JPanel buttonPanelTop = new JPanel(new FlowLayout());
+        buttonPanelTop.setBackground(PINK_BACKGROUND);
+        buttonPanelTop.add(addButton);
+        
+        inputPanel.add(titlePanel, BorderLayout.NORTH);
+        inputPanel.add(descPanel, BorderLayout.CENTER);
+        inputPanel.add(buttonPanelTop, BorderLayout.SOUTH);
 
+        // Панель кнопок управления
+        JPanel controlPanel = new JPanel(new FlowLayout());
+        controlPanel.setBackground(PINK_BACKGROUND);
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        controlPanel.add(deleteButton);
+        controlPanel.add(completeButton);
+        controlPanel.add(editButton);
+
+        // Заголовок
+        JLabel titleLabelMain = new JLabel("🌸 Мои Задачи 🌸", JLabel.CENTER);
+        titleLabelMain.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabelMain.setForeground(DARK_PINK_TEXT);
+        titleLabelMain.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+        titleLabelMain.setBackground(new Color(255, 228, 225));
+        titleLabelMain.setOpaque(true);
+
+        // Основная компоновка
         setLayout(new BorderLayout());
-        add(titleLabel, BorderLayout.NORTH);
+        add(titleLabelMain, BorderLayout.NORTH);
         add(inputPanel, BorderLayout.NORTH);
         add(new JScrollPane(taskList), BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        add(controlPanel, BorderLayout.SOUTH);
     }
 
     private void styleTextField(JTextField field) {
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         field.setBackground(Color.WHITE);
         field.setForeground(DARK_PINK_TEXT);
         field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(PINK_BORDER, 2),
+            BorderFactory.createLineBorder(PINK_BORDER, 1),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
         field.setCaretColor(PINK_BORDER);
@@ -165,10 +208,10 @@ public class TodoApp extends JFrame {
 
     private JButton createPinkButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setForeground(Color.WHITE);
         button.setBackground(PINK_BUTTON);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        button.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
@@ -189,9 +232,12 @@ public class TodoApp extends JFrame {
 
     private void setupListeners() {
         addButton.addActionListener(e -> addTask());
-        taskField.addActionListener(e -> addTask());
         deleteButton.addActionListener(e -> deleteTask());
         completeButton.addActionListener(e -> toggleTaskCompletion());
+        editButton.addActionListener(e -> editTask());
+
+        // Добавление по Enter в поле заголовка
+        titleField.addActionListener(e -> addTask());
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -208,27 +254,47 @@ public class TodoApp extends JFrame {
                 }
             }
         });
+
+        // Двойной клик для редактирования
+        taskList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    editTask();
+                }
+            }
+        });
     }
 
     private void addTask() {
-        String description = taskField.getText().trim();
-        if (!description.isEmpty()) {
-            Task task = new Task(tasks.size() + 1, description);
+        String title = titleField.getText().trim();
+        String description = descriptionArea.getText().trim();
+        
+        if (!title.isEmpty()) {
+            Task task = new Task(tasks.size() + 1, title, description);
             tasks.add(task);
             updateListModel();
-            taskField.setText("");
-            taskField.requestFocus();
+            titleField.setText("");
+            descriptionArea.setText("");
+            titleField.requestFocus();
             saveTasks();
+        } else {
+            JOptionPane.showMessageDialog(this, "Введите заголовок задачи!", "Внимание", JOptionPane.WARNING_MESSAGE);
         }
     }
 
     private void deleteTask() {
         int selectedIndex = taskList.getSelectedIndex();
         if (selectedIndex != -1) {
-            tasks.remove(selectedIndex);
-            updateTaskIds();
-            updateListModel();
-            saveTasks();
+            int result = JOptionPane.showConfirmDialog(this, 
+                "Удалить выбранную задачу?", "Подтверждение удаления", 
+                JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                tasks.remove(selectedIndex);
+                updateTaskIds();
+                updateListModel();
+                saveTasks();
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Выберите задачу для удаления!", "Информация", JOptionPane.INFORMATION_MESSAGE);
         }
@@ -243,6 +309,42 @@ public class TodoApp extends JFrame {
             saveTasks();
         } else {
             JOptionPane.showMessageDialog(this, "Выберите задачу!", "Информация", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void editTask() {
+        int selectedIndex = taskList.getSelectedIndex();
+        if (selectedIndex != -1) {
+            Task task = tasks.get(selectedIndex);
+            
+
+            JTextField editTitleField = new JTextField(task.getTitle(), 20);
+            JTextArea editDescArea = new JTextArea(task.getDescription(), 3, 20);
+            editDescArea.setLineWrap(true);
+            editDescArea.setWrapStyleWord(true);
+            
+            JPanel panel = new JPanel(new BorderLayout(10, 10));
+            panel.add(new JLabel("Заголовок:"), BorderLayout.NORTH);
+            panel.add(editTitleField, BorderLayout.CENTER);
+            panel.add(new JLabel("Описание:"), BorderLayout.SOUTH);
+            panel.add(new JScrollPane(editDescArea), BorderLayout.AFTER_LAST_LINE);
+            
+            int result = JOptionPane.showConfirmDialog(this, panel, 
+                "Редактирование задачи", JOptionPane.OK_CANCEL_OPTION);
+            
+            if (result == JOptionPane.OK_OPTION) {
+                String newTitle = editTitleField.getText().trim();
+                if (!newTitle.isEmpty()) {
+                    task.setTitle(newTitle);
+                    task.setDescription(editDescArea.getText().trim());
+                    updateListModel();
+                    saveTasks();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Заголовок не может быть пустым!", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Выберите задачу для редактирования!", "Информация", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -283,7 +385,6 @@ public class TodoApp extends JFrame {
     }
 
     public static void main(String[] args) {
-        // Упрощаем - убираем установку Look and Feel
         SwingUtilities.invokeLater(() -> {
             new TodoApp().setVisible(true);
         });
