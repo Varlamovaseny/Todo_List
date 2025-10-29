@@ -4,101 +4,102 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
-class Task implements Serializable {
-    private static final long serialVersionUID = 1L;
+// Добавьте этот класс в начало файла
+class DatePickerPanel extends JPanel {
+    private JComboBox<Integer> dayCombo;
+    private JComboBox<String> monthCombo;
+    private JComboBox<Integer> yearCombo;
     
-    private int id;
-    private String title;
-    private String description;
-    private String tag;
-    private String deadline;
-    private boolean completed;
-    private java.time.LocalDateTime createdAt;
-
-    public Task(int id, String title, String description, String tag, String deadline) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.tag = tag;
-        this.deadline = deadline;
-        this.completed = false;
-        this.createdAt = java.time.LocalDateTime.now();
+    public DatePickerPanel() {
+        setLayout(new FlowLayout());
+        
+        // Дни
+        dayCombo = new JComboBox<>();
+        for (int i = 1; i <= 31; i++) {
+            dayCombo.addItem(i);
+        }
+        
+        // Месяцы
+        monthCombo = new JComboBox<>(new String[]{
+            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+        });
+        
+        // Годы (текущий + 5 лет вперед)
+        yearCombo = new JComboBox<>();
+        int currentYear = LocalDate.now().getYear();
+        for (int i = currentYear; i <= currentYear + 5; i++) {
+            yearCombo.addItem(i);
+        }
+        
+        // Устанавливаем сегодняшнюю дату по умолчанию
+        setToToday();
+        
+        add(new JLabel("День:"));
+        add(dayCombo);
+        add(new JLabel("Месяц:"));
+        add(monthCombo);
+        add(new JLabel("Год:"));
+        add(yearCombo);
     }
-
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getTag() { return tag; }
-    public void setTag(String tag) { this.tag = tag; }
-    public String getDeadline() { return deadline; }
-    public void setDeadline(String deadline) { this.deadline = deadline; }
-    public boolean isCompleted() { return completed; }
-    public void setCompleted(boolean completed) { this.completed = completed; }
-    public java.time.LocalDateTime getCreatedAt() { return createdAt; }
-
-    @Override
-    public String toString() {
-        String status = completed ? "[✓]" : "[ ]";
-        String time = createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm"));
+    
+    public String getDate() {
+        int day = (Integer) dayCombo.getSelectedItem();
+        int month = monthCombo.getSelectedIndex() + 1;
+        int year = (Integer) yearCombo.getSelectedItem();
         
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%d. %s %s", id, status, title));
-        
-        if (tag != null && !tag.isEmpty()) {
-            sb.append(" [").append(tag).append("]");
+        try {
+            LocalDate date = LocalDate.of(year, month, day);
+            return date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        } catch (Exception e) {
+            return "";
         }
-        
-        if (deadline != null && !deadline.isEmpty()) {
-            sb.append(" 📅 ").append(deadline);
-        }
-        
-        if (description != null && !description.isEmpty()) {
-            sb.append(" - ").append(description);
-        }
-        
-        sb.append(" (").append(time).append(")");
-        return sb.toString();
     }
-}
-
-class TaskListRenderer extends DefaultListCellRenderer {
-    private final Color PINK_SELECTION = new Color(255, 182, 193);
-    private final Color DARK_PINK = new Color(199, 21, 133);
-    private final Color GRAY_TEXT = new Color(128, 128, 128);
-    private final Color BLUE_TAG = new Color(70, 130, 180);
-    private final Color RED_DEADLINE = new Color(220, 20, 60);
-
-    @Override
-    public Component getListCellRendererComponent(JList<?> list, Object value, int index, 
-                                                  boolean isSelected, boolean cellHasFocus) {
-        super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+    
+    public void setDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            setToToday();
+            return;
+        }
         
-        if (value instanceof Task) {
-            Task task = (Task) value;
+        try {
+            // Пробуем разные форматы дат
+            DateTimeFormatter[] formatters = {
+                DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+                DateTimeFormatter.ofPattern("dd.MM.yy"),
+                DateTimeFormatter.ofPattern("dd.MM")
+            };
             
-            if (task.isCompleted()) {
-                setFont(getFont().deriveFont(Font.ITALIC));
-                setForeground(GRAY_TEXT);
-            } else {
-                setFont(getFont().deriveFont(Font.BOLD));
-                setForeground(DARK_PINK);
+            LocalDate date = null;
+            for (DateTimeFormatter formatter : formatters) {
+                try {
+                    date = LocalDate.parse(dateStr, formatter);
+                    break;
+                } catch (Exception e) {
+                    // Пробуем следующий формат
+                }
             }
             
-            if (isSelected) {
-                setBackground(PINK_SELECTION);
-                setForeground(Color.WHITE);
+            if (date != null) {
+                dayCombo.setSelectedItem(date.getDayOfMonth());
+                monthCombo.setSelectedIndex(date.getMonthValue() - 1);
+                yearCombo.setSelectedItem(date.getYear());
             } else {
-                setBackground(index % 2 == 0 ? Color.WHITE : new Color(255, 250, 250));
+                setToToday();
             }
-            
-            setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        } catch (Exception e) {
+            setToToday();
         }
-        
-        return this;
+    }
+    
+    public void setToToday() {
+        LocalDate today = LocalDate.now();
+        dayCombo.setSelectedItem(today.getDayOfMonth());
+        monthCombo.setSelectedIndex(today.getMonthValue() - 1);
+        yearCombo.setSelectedItem(today.getYear());
     }
 }
 
@@ -108,7 +109,7 @@ public class TodoApp extends JFrame {
     private JTextField titleField;
     private JTextArea descriptionArea;
     private JComboBox<String> tagComboBox;
-    private JTextField deadlineField;
+    private DatePickerPanel datePicker;
     private JButton addButton, deleteButton, completeButton, editButton;
     private List<Task> tasks;
     private static final String SAVE_FILE = "tasks.dat";
@@ -117,7 +118,7 @@ public class TodoApp extends JFrame {
     private final Color PINK_BUTTON = new Color(255, 182, 193);
     private final Color PINK_BUTTON_HOVER = new Color(255, 105, 180);
     private final Color PINK_BORDER = new Color(219, 112, 147);
-    private final Color DARK_PINK_TEXT = new Color(199, 21, 133);
+    private final Color DARK_PINK = new Color(199, 21, 133); // Исправлено: DARK_PINK_TEXT на DARK_PINK
 
     public TodoApp() {
         tasks = new ArrayList<>();
@@ -129,7 +130,7 @@ public class TodoApp extends JFrame {
     private void initializeUI() {
         setTitle("Pink Todo App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(550, 650);
+        setSize(600, 700);
         setLocationRelativeTo(null);
         getContentPane().setBackground(PINK_BACKGROUND);
 
@@ -140,7 +141,32 @@ public class TodoApp extends JFrame {
         taskList.setBackground(Color.WHITE);
         taskList.setSelectionBackground(PINK_BUTTON);
         taskList.setSelectionForeground(Color.WHITE);
-        taskList.setCellRenderer(new TaskListRenderer());
+        taskList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, 
+                                                        boolean isSelected, boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                
+                if (value instanceof Task) {
+                    Task task = (Task) value;
+                    
+                    if (task.isCompleted()) {
+                        setFont(getFont().deriveFont(Font.ITALIC));
+                        setForeground(Color.GRAY);
+                    } else {
+                        setFont(getFont().deriveFont(Font.BOLD));
+                        setForeground(DARK_PINK); // Исправлено: теперь использует DARK_PINK
+                    }
+                    
+                    if (isSelected) {
+                        setBackground(PINK_BUTTON);
+                        setForeground(Color.WHITE);
+                    }
+                }
+                
+                return c;
+            }
+        });
 
         titleField = new JTextField(20);
         styleTextField(titleField);
@@ -149,7 +175,7 @@ public class TodoApp extends JFrame {
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setBackground(Color.WHITE);
-        descriptionArea.setForeground(DARK_PINK_TEXT);
+        descriptionArea.setForeground(DARK_PINK); // Исправлено
         descriptionArea.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(PINK_BORDER, 1),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
@@ -159,15 +185,31 @@ public class TodoApp extends JFrame {
         tagComboBox = new JComboBox<>(defaultTags);
         styleComboBox(tagComboBox);
 
-        deadlineField = new JTextField(15);
-        deadlineField.setToolTipText("Формат: дд.мм.гггг или дд.мм");
-        styleTextField(deadlineField);
+        datePicker = new DatePickerPanel();
 
         addButton = createPinkButton("Добавить");
         deleteButton = createPinkButton("Удалить");
         completeButton = createPinkButton("Выполнено");
         editButton = createPinkButton("Редактировать");
 
+        JPanel inputPanel = createInputPanel();
+        JPanel controlPanel = createControlPanel();
+
+        JLabel titleLabelMain = new JLabel("Мои Задачи", JLabel.CENTER);
+        titleLabelMain.setFont(titleLabelMain.getFont().deriveFont(Font.BOLD, 20));
+        titleLabelMain.setForeground(DARK_PINK); // Исправлено
+        titleLabelMain.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+        titleLabelMain.setBackground(new Color(255, 228, 225));
+        titleLabelMain.setOpaque(true);
+
+        setLayout(new BorderLayout());
+        add(titleLabelMain, BorderLayout.NORTH);
+        add(inputPanel, BorderLayout.NORTH);
+        add(new JScrollPane(taskList), BorderLayout.CENTER);
+        add(controlPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createInputPanel() {
         JPanel inputPanel = new JPanel(new BorderLayout(10, 10));
         inputPanel.setBackground(PINK_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -175,7 +217,7 @@ public class TodoApp extends JFrame {
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         titlePanel.setBackground(PINK_BACKGROUND);
         JLabel titleLabel = new JLabel("Заголовок:");
-        titleLabel.setForeground(DARK_PINK_TEXT);
+        titleLabel.setForeground(DARK_PINK); // Исправлено
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD));
         titlePanel.add(titleLabel);
         titlePanel.add(titleField);
@@ -183,21 +225,21 @@ public class TodoApp extends JFrame {
         JPanel tagDeadlinePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         tagDeadlinePanel.setBackground(PINK_BACKGROUND);
         JLabel tagLabel = new JLabel("Тег:");
-        tagLabel.setForeground(DARK_PINK_TEXT);
+        tagLabel.setForeground(DARK_PINK); // Исправлено
         tagLabel.setFont(tagLabel.getFont().deriveFont(Font.BOLD));
         tagDeadlinePanel.add(tagLabel);
         tagDeadlinePanel.add(tagComboBox);
         
         JLabel deadlineLabel = new JLabel("Дедлайн:");
-        deadlineLabel.setForeground(DARK_PINK_TEXT);
+        deadlineLabel.setForeground(DARK_PINK); // Исправлено
         deadlineLabel.setFont(deadlineLabel.getFont().deriveFont(Font.BOLD));
         tagDeadlinePanel.add(deadlineLabel);
-        tagDeadlinePanel.add(deadlineField);
+        tagDeadlinePanel.add(datePicker);
         
         JPanel descPanel = new JPanel(new BorderLayout(5, 5));
         descPanel.setBackground(PINK_BACKGROUND);
         JLabel descLabel = new JLabel("Описание:");
-        descLabel.setForeground(DARK_PINK_TEXT);
+        descLabel.setForeground(DARK_PINK); // Исправлено
         descLabel.setFont(descLabel.getFont().deriveFont(Font.BOLD));
         descPanel.add(descLabel, BorderLayout.NORTH);
         descPanel.add(new JScrollPane(descriptionArea), BorderLayout.CENTER);
@@ -211,30 +253,22 @@ public class TodoApp extends JFrame {
         inputPanel.add(descPanel, BorderLayout.SOUTH);
         inputPanel.add(buttonPanelTop, BorderLayout.AFTER_LAST_LINE);
 
+        return inputPanel;
+    }
+
+    private JPanel createControlPanel() {
         JPanel controlPanel = new JPanel(new FlowLayout());
         controlPanel.setBackground(PINK_BACKGROUND);
         controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         controlPanel.add(deleteButton);
         controlPanel.add(completeButton);
         controlPanel.add(editButton);
-
-        JLabel titleLabelMain = new JLabel("Мои Задачи", JLabel.CENTER);
-        titleLabelMain.setFont(titleLabelMain.getFont().deriveFont(Font.BOLD, 20));
-        titleLabelMain.setForeground(DARK_PINK_TEXT);
-        titleLabelMain.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
-        titleLabelMain.setBackground(new Color(255, 228, 225));
-        titleLabelMain.setOpaque(true);
-
-        setLayout(new BorderLayout());
-        add(titleLabelMain, BorderLayout.NORTH);
-        add(inputPanel, BorderLayout.NORTH);
-        add(new JScrollPane(taskList), BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.SOUTH);
+        return controlPanel;
     }
 
     private void styleTextField(JTextField field) {
         field.setBackground(Color.WHITE);
-        field.setForeground(DARK_PINK_TEXT);
+        field.setForeground(DARK_PINK); // Исправлено
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(PINK_BORDER, 1),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
@@ -244,7 +278,7 @@ public class TodoApp extends JFrame {
 
     private void styleComboBox(JComboBox<String> comboBox) {
         comboBox.setBackground(Color.WHITE);
-        comboBox.setForeground(DARK_PINK_TEXT);
+        comboBox.setForeground(DARK_PINK); // Исправлено
         comboBox.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(PINK_BORDER, 1),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
@@ -313,7 +347,7 @@ public class TodoApp extends JFrame {
         String title = titleField.getText().trim();
         String description = descriptionArea.getText().trim();
         String tag = (String) tagComboBox.getSelectedItem();
-        String deadline = deadlineField.getText().trim();
+        String deadline = datePicker.getDate();
         
         if (!title.isEmpty()) {
             Task task = new Task(tasks.size() + 1, title, description, tag, deadline);
@@ -331,7 +365,7 @@ public class TodoApp extends JFrame {
         titleField.setText("");
         descriptionArea.setText("");
         tagComboBox.setSelectedIndex(0);
-        deadlineField.setText("");
+        datePicker.setToToday();
     }
 
     private void deleteTask() {
@@ -375,19 +409,30 @@ public class TodoApp extends JFrame {
             
             String[] tags = {"", "🏠 Дом", "💼 Работа", "🎓 Учеба", "🛒 Покупки", "🏥 Здоровье", "✈️ Путешествие", "🎉 Развлечение"};
             JComboBox<String> editTagComboBox = new JComboBox<>(tags);
-            editTagComboBox.setSelectedItem(task.getTag());
+            if (task.getTag() != null) {
+                editTagComboBox.setSelectedItem(task.getTag());
+            }
             
-            JTextField editDeadlineField = new JTextField(task.getDeadline(), 15);
+            // Используем DatePicker для редактирования
+            DatePickerPanel editDatePicker = new DatePickerPanel();
+            editDatePicker.setDate(task.getDeadline());
             
-            JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
-            panel.add(new JLabel("Заголовок:"));
-            panel.add(editTitleField);
-            panel.add(new JLabel("Описание:"));
-            panel.add(new JScrollPane(editDescArea));
-            panel.add(new JLabel("Тег:"));
-            panel.add(editTagComboBox);
-            panel.add(new JLabel("Дедлайн:"));
-            panel.add(editDeadlineField);
+            JPanel panel = new JPanel(new BorderLayout(10, 10));
+            
+            JPanel fieldsPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+            fieldsPanel.add(new JLabel("Заголовок:"));
+            fieldsPanel.add(editTitleField);
+            fieldsPanel.add(new JLabel("Описание:"));
+            fieldsPanel.add(new JScrollPane(editDescArea));
+            fieldsPanel.add(new JLabel("Тег:"));
+            fieldsPanel.add(editTagComboBox);
+            fieldsPanel.add(new JLabel("Дедлайн:"));
+            
+            JPanel datePickerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            datePickerPanel.add(editDatePicker);
+            fieldsPanel.add(datePickerPanel);
+            
+            panel.add(fieldsPanel, BorderLayout.CENTER);
             
             int result = JOptionPane.showConfirmDialog(this, panel, 
                 "Редактирование задачи", JOptionPane.OK_CANCEL_OPTION);
@@ -398,7 +443,7 @@ public class TodoApp extends JFrame {
                     task.setTitle(newTitle);
                     task.setDescription(editDescArea.getText().trim());
                     task.setTag((String) editTagComboBox.getSelectedItem());
-                    task.setDeadline(editDeadlineField.getText().trim());
+                    task.setDeadline(editDatePicker.getDate());
                     updateListModel();
                     saveTasks();
                 } else {
