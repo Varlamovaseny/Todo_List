@@ -5,7 +5,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
 class Task implements Serializable {
     private static final long serialVersionUID = 1L;
     
@@ -35,8 +34,9 @@ class Task implements Serializable {
 
     @Override
     public String toString() {
-        String status = completed ? "✓" : "○";
+        String status = completed ? "[✓]" : "[ ]";
         String time = createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm"));
+        
         if (description == null || description.isEmpty()) {
             return String.format("%d. %s %s (%s)", id, status, title, time);
         } else {
@@ -45,9 +45,7 @@ class Task implements Serializable {
     }
 }
 
-
 class TaskListRenderer extends DefaultListCellRenderer {
-    private final Color PINK_BACKGROUND = new Color(255, 240, 245);
     private final Color PINK_SELECTION = new Color(255, 182, 193);
     private final Color DARK_PINK = new Color(199, 21, 133);
     private final Color GRAY_TEXT = new Color(128, 128, 128);
@@ -82,7 +80,6 @@ class TaskListRenderer extends DefaultListCellRenderer {
     }
 }
 
-
 public class TodoApp extends JFrame {
     private DefaultListModel<Task> listModel;
     private JList<Task> taskList;
@@ -106,7 +103,7 @@ public class TodoApp extends JFrame {
     }
 
     private void initializeUI() {
-        setTitle("🌸 Pink Todo App");
+        setTitle("Pink Todo App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 600);
         setLocationRelativeTo(null);
@@ -119,17 +116,14 @@ public class TodoApp extends JFrame {
         taskList.setBackground(Color.WHITE);
         taskList.setSelectionBackground(PINK_BUTTON);
         taskList.setSelectionForeground(Color.WHITE);
-        taskList.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         taskList.setCellRenderer(new TaskListRenderer());
 
-        // Поля для ввода
         titleField = new JTextField(20);
         styleTextField(titleField);
         
         descriptionArea = new JTextArea(3, 20);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         descriptionArea.setBackground(Color.WHITE);
         descriptionArea.setForeground(DARK_PINK_TEXT);
         descriptionArea.setBorder(BorderFactory.createCompoundBorder(
@@ -137,12 +131,11 @@ public class TodoApp extends JFrame {
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
 
-        addButton = createPinkButton("➕ Добавить");
-        deleteButton = createPinkButton("🗑️ Удалить");
-        completeButton = createPinkButton("✓ Выполнено");
-        editButton = createPinkButton("✏️ Редактировать");
+        addButton = createPinkButton("Добавить");
+        deleteButton = createPinkButton("Удалить");
+        completeButton = createPinkButton("Выполнено");
+        editButton = createPinkButton("Редактировать");
 
-        // Панель для ввода
         JPanel inputPanel = new JPanel(new BorderLayout(10, 10));
         inputPanel.setBackground(PINK_BACKGROUND);
         inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -151,7 +144,7 @@ public class TodoApp extends JFrame {
         titlePanel.setBackground(PINK_BACKGROUND);
         JLabel titleLabel = new JLabel("Заголовок:");
         titleLabel.setForeground(DARK_PINK_TEXT);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD));
         titlePanel.add(titleLabel);
         titlePanel.add(titleField);
         
@@ -159,7 +152,7 @@ public class TodoApp extends JFrame {
         descPanel.setBackground(PINK_BACKGROUND);
         JLabel descLabel = new JLabel("Описание:");
         descLabel.setForeground(DARK_PINK_TEXT);
-        descLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        descLabel.setFont(descLabel.getFont().deriveFont(Font.BOLD));
         descPanel.add(descLabel, BorderLayout.NORTH);
         descPanel.add(new JScrollPane(descriptionArea), BorderLayout.CENTER);
         
@@ -171,7 +164,6 @@ public class TodoApp extends JFrame {
         inputPanel.add(descPanel, BorderLayout.CENTER);
         inputPanel.add(buttonPanelTop, BorderLayout.SOUTH);
 
-        // Панель кнопок управления
         JPanel controlPanel = new JPanel(new FlowLayout());
         controlPanel.setBackground(PINK_BACKGROUND);
         controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -179,15 +171,13 @@ public class TodoApp extends JFrame {
         controlPanel.add(completeButton);
         controlPanel.add(editButton);
 
-        // Заголовок
-        JLabel titleLabelMain = new JLabel("🌸 Мои Задачи 🌸", JLabel.CENTER);
-        titleLabelMain.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        JLabel titleLabelMain = new JLabel("Мои Задачи", JLabel.CENTER);
+        titleLabelMain.setFont(titleLabelMain.getFont().deriveFont(Font.BOLD, 20));
         titleLabelMain.setForeground(DARK_PINK_TEXT);
         titleLabelMain.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
         titleLabelMain.setBackground(new Color(255, 228, 225));
         titleLabelMain.setOpaque(true);
 
-        // Основная компоновка
         setLayout(new BorderLayout());
         add(titleLabelMain, BorderLayout.NORTH);
         add(inputPanel, BorderLayout.NORTH);
@@ -196,7 +186,6 @@ public class TodoApp extends JFrame {
     }
 
     private void styleTextField(JTextField field) {
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         field.setBackground(Color.WHITE);
         field.setForeground(DARK_PINK_TEXT);
         field.setBorder(BorderFactory.createCompoundBorder(
@@ -208,7 +197,7 @@ public class TodoApp extends JFrame {
 
     private JButton createPinkButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setFont(button.getFont().deriveFont(Font.BOLD));
         button.setForeground(Color.WHITE);
         button.setBackground(PINK_BUTTON);
         button.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
@@ -236,7 +225,6 @@ public class TodoApp extends JFrame {
         completeButton.addActionListener(e -> toggleTaskCompletion());
         editButton.addActionListener(e -> editTask());
 
-        // Добавление по Enter в поле заголовка
         titleField.addActionListener(e -> addTask());
 
         addWindowListener(new WindowAdapter() {
@@ -255,7 +243,6 @@ public class TodoApp extends JFrame {
             }
         });
 
-        // Двойной клик для редактирования
         taskList.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -317,16 +304,18 @@ public class TodoApp extends JFrame {
         if (selectedIndex != -1) {
             Task task = tasks.get(selectedIndex);
             
-
             JTextField editTitleField = new JTextField(task.getTitle(), 20);
             JTextArea editDescArea = new JTextArea(task.getDescription(), 3, 20);
             editDescArea.setLineWrap(true);
             editDescArea.setWrapStyleWord(true);
             
             JPanel panel = new JPanel(new BorderLayout(10, 10));
-            panel.add(new JLabel("Заголовок:"), BorderLayout.NORTH);
+            JLabel titleLabel = new JLabel("Заголовок:");
+            panel.add(titleLabel, BorderLayout.NORTH);
             panel.add(editTitleField, BorderLayout.CENTER);
-            panel.add(new JLabel("Описание:"), BorderLayout.SOUTH);
+            
+            JLabel descLabel = new JLabel("Описание:");
+            panel.add(descLabel, BorderLayout.SOUTH);
             panel.add(new JScrollPane(editDescArea), BorderLayout.AFTER_LAST_LINE);
             
             int result = JOptionPane.showConfirmDialog(this, panel, 
@@ -367,9 +356,7 @@ public class TodoApp extends JFrame {
         if (file.exists()) {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(SAVE_FILE))) {
                 tasks = (List<Task>) ois.readObject();
-                System.out.println("Задачи загружены!");
             } catch (IOException | ClassNotFoundException e) {
-                System.out.println("Ошибка при загрузке задач: " + e.getMessage());
                 tasks = new ArrayList<>();
             }
         }
@@ -378,9 +365,7 @@ public class TodoApp extends JFrame {
     private void saveTasks() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE))) {
             oos.writeObject(tasks);
-            System.out.println("Задачи сохранены!");
         } catch (IOException e) {
-            System.out.println("Ошибка при сохранении задач: " + e.getMessage());
         }
     }
 
